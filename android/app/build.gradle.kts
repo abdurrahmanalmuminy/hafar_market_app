@@ -11,7 +11,7 @@ plugins {
 }
 
 android {
-    namespace = "com.newuniverse.hafarmarket"
+    namespace = "com.newuniverse.market"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -25,7 +25,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.newuniverse.hafarmarket"
+        applicationId = "com.newuniverse.market"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

@@ -1,4 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hafar_market_app/controllers/error_handler.dart';
@@ -14,7 +16,6 @@ import 'package:hafar_market_app/ui/screens/welcome.dart';
 import 'package:hafar_market_app/ui/themes/themes.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:hafar_market_app/services/dynamic_links_service.dart';
 import 'package:hafar_market_app/services/notification_service.dart';
 // import 'package:hafar_market_app/l10n/app_localizations.dart';
 
@@ -31,9 +32,19 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    // Initialize App Check early
+    try {
+      await FirebaseAppCheck.instance.activate(
+        // Use debug provider on iOS in debug builds (e.g., Simulator). DeviceCheck for release.
+        appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
+        webProvider: ReCaptchaV3Provider(''),
+      );
+    } catch (e) {
+      debugPrint('App Check activation failed: $e');
+    }
     // Initialize dynamic links listener (non-blocking)
     try {
-      await DynamicLinksService(navigatorKey: rootNavigatorKey).init();
+      // await DynamicLinksService(navigatorKey: rootNavigatorKey).init();
     } catch (e) {
       debugPrint('Dynamic links initialization failed: $e');
       // Continue app initialization even if dynamic links fail

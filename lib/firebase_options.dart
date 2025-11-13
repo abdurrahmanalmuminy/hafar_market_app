@@ -51,18 +51,21 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDZOyUcD_98c95pW4e9X7KnNthW-Xf2JFI',
-    appId: '1:76087421545:android:e834539b23e21e33b590f8',
+    appId: '1:76087421545:android:33332ce6b6e958b0b590f8',
     messagingSenderId: '76087421545',
     projectId: 'hafar-market',
+    databaseURL: 'https://hafar-market-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'hafar-market.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBi--xpeH3ZreUdDCzqeM2QpSbW2AkNSfw',
-    appId: '1:76087421545:ios:83edf6adc058b575b590f8',
+    appId: '1:76087421545:ios:727009c6c26a49a5b590f8',
     messagingSenderId: '76087421545',
     projectId: 'hafar-market',
+    databaseURL: 'https://hafar-market-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'hafar-market.firebasestorage.app',
-    iosBundleId: 'com.newuniverse.hafarmarket',
+    iosBundleId: 'com.newuniverse.market',
   );
+
 }

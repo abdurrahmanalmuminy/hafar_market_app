@@ -45,19 +45,62 @@ class StorageService {
       img.encodeJpg(thumb, quality: 80),
     );
 
-    final String imageId = const Uuid().v4();
-    final String basePath = 'offers/$userId/$imageId';
-
-    final Reference originalRef = _storage.ref('$basePath.jpg');
-    final Reference thumbRef = _storage.ref('offers/$userId/thumbnails/${imageId}_thumb.jpg');
-
     final SettableMetadata meta = SettableMetadata(contentType: contentType);
 
-    await originalRef.putData(originalJpg, meta);
-    await thumbRef.putData(thumbJpg, meta);
+    String _newImageId() => const Uuid().v4();
 
-    final String originalUrl = await originalRef.getDownloadURL();
-    final String thumbnailUrl = await thumbRef.getDownloadURL();
+    Future<Reference> _putWithPathRetry({
+      required String initialPath,
+      required Uint8List data,
+      required SettableMetadata metadata,
+    }) async {
+      const int maxAttempts = 3;
+      int attempt = 0;
+      String currentPath = initialPath;
+      while (true) {
+        try {
+          final ref = _storage.ref().child(currentPath);
+          await ref.putData(data, metadata);
+          return ref;
+        } catch (e) {
+          attempt++;
+          if (attempt >= maxAttempts) rethrow;
+          final errorText = e.toString();
+          // If we hit a 412 precondition failed (seen on iOS), regenerate a fresh path
+          if (errorText.contains('412')) {
+            // place under a fresh id to avoid any stalled resumable upload session conflicts
+            final String newId = _newImageId();
+            final String parentDir = initialPath.substring(0, initialPath.lastIndexOf('/'));
+            final String fileName = initialPath.substring(initialPath.lastIndexOf('/') + 1);
+            final String ext = fileName.contains('.') ? fileName.split('.').last : 'jpg';
+            final String prefix = fileName.contains('.') ? fileName.split('.').first : 'image';
+            currentPath = '$parentDir/${prefix}_$newId.$ext';
+          }
+          // Exponential backoff: 300ms, 800ms
+          final int delayMs = attempt == 1 ? 300 : 800;
+          await Future.delayed(Duration(milliseconds: delayMs));
+        }
+      }
+    }
+
+    // Create initial paths
+    final String imageId = _newImageId();
+    final String originalPath = 'offers/$userId/$imageId.jpg';
+    final String thumbPath = 'offers/$userId/thumbnails/${imageId}_thumb.jpg';
+
+    final Reference finalOriginalRef = await _putWithPathRetry(
+      initialPath: originalPath,
+      data: originalJpg,
+      metadata: meta,
+    );
+    final Reference finalThumbRef = await _putWithPathRetry(
+      initialPath: thumbPath,
+      data: thumbJpg,
+      metadata: meta,
+    );
+
+    final String originalUrl = await finalOriginalRef.getDownloadURL();
+    final String thumbnailUrl = await finalThumbRef.getDownloadURL();
 
     return UploadedImageUrls(originalUrl: originalUrl, thumbnailUrl: thumbnailUrl);
   }

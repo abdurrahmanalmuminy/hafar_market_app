@@ -112,14 +112,17 @@ class _OfferDetailsState extends State<OfferDetails> {
                   // 3. Trim each resulting word
                   // 4. Filter out any empty strings that might result from multiple spaces
                   // 5. Convert to a Set to get unique tags
-                  // 6. Convert back to a List
-                  generatedTags =
-                      cleanedValue
-                          .split(RegExp(r'\s+')) // Split by one or more spaces
-                          .map((tag) => tag.trim())
-                          .where((tag) => tag.isNotEmpty)
-                          .toSet() // Remove duplicates
-                          .toList();
+                  // 6. Exclude any tag that already exists in tags or current generatedTags
+                  // 7. Convert back to a List
+                  final existingTags = {...tags, ...generatedTags};
+                  final uniqueWords = cleanedValue
+                      .split(RegExp(r'\s+')) // Split by one or more spaces
+                      .map((tag) => tag.trim())
+                      .where((tag) => tag.isNotEmpty)
+                      .toSet();
+                  generatedTags = uniqueWords
+                      .where((tag) => !existingTags.contains(tag))
+                      .toList();
                 });
               },
             ),

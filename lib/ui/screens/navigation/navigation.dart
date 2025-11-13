@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:hafar_market_app/ui/screens/navigation/account.dart';
 import 'package:hafar_market_app/ui/screens/navigation/business.dart';
 import 'package:hafar_market_app/ui/screens/navigation/markets.dart';
@@ -19,12 +20,14 @@ class _NavigationState extends State<Navigation> {
   FloatingActionButtonLocation fabLocation =
       FloatingActionButtonLocation.centerFloat;
   Widget addOfferFAB = const AddOffer();
+  Timer? _fabTimer;
 
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 1), () {
+    _fabTimer = Timer(const Duration(seconds: 1), () {
+      if (!mounted) return;
       setState(() {
         fabLocation = FloatingActionButtonLocation.endFloat;
         addOfferFAB = const AddOffer();
@@ -34,6 +37,12 @@ class _NavigationState extends State<Navigation> {
 
   int currentIndex = 0;
   List<Widget> page = [Home(), Trending(), Markets(), Business(), Account()];
+
+  @override
+  void dispose() {
+    _fabTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

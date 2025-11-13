@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.newuniverse.hafarmarket</string>
+	<string>com.newuniverse.market</string>
 	<key>PROJECT_ID</key>
 	<string>hafar-market</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,8 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:76087421545:ios:83edf6adc058b575b590f8</string>
+	<string>1:76087421545:ios:727009c6c26a49a5b590f8</string>
+	<key>DATABASE_URL</key>
+	<string>https://hafar-market-default-rtdb.europe-west1.firebasedatabase.app</string>
 </dict>
 </plist>

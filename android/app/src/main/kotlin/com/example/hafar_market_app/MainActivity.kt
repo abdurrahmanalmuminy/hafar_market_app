@@ -1,4 +1,4 @@
-package com.newuniverse.hafarmarket
+package com.newuniverse.market
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,14 +1,17 @@
 import 'dart:typed_data';
+import 'dart:io';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dots_indicator/dots_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image/image.dart' as img;
 import 'package:hafar_market_app/controllers/error_handler.dart';
 import 'package:hafar_market_app/models/user/user.dart';
 import 'package:hafar_market_app/providers/user_provider.dart';
 import 'package:hafar_market_app/services/storage_service.dart';
 import 'package:hafar_market_app/ui/screens/new_offer.dart/view_offer.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hafar_market_app/ui/themes/colors.dart';
 import 'package:hafar_market_app/ui/themes/dimentions.dart';
 import 'package:hafar_market_app/ui/widget/widgets.dart';
@@ -27,6 +30,7 @@ class _OfferPicturesState extends State<OfferPictures> {
   final StorageService _storage = StorageService();
 
   final List<Uint8List> _localImages = [];
+  final List<String> _localContentTypes = [];
   final List<String> _uploadedUrls = [];
   bool _uploading = false;
   int _currentImageIndex = 0;
@@ -40,10 +44,60 @@ class _OfferPicturesState extends State<OfferPictures> {
         withData: true,
       );
       if (result == null) return;
-      final files = result.files.where((f) => f.bytes != null).toList();
-      setState(() {
-        _localImages.addAll(files.map((f) => f.bytes!).take(10 - _localImages.length));
-      });
+      final files = result.files.toList();
+      final allowedExtensions = {'jpg', 'jpeg', 'png', 'webp'};
+      int skipped = 0;
+      final validBytes = <Uint8List>[];
+      final validTypes = <String>[];
+      for (final f in files) {
+        Uint8List? bytes = f.bytes;
+        // Fallback to reading from path if bytes not provided by picker
+        if (bytes == null && f.path != null) {
+          try {
+            bytes = await File(f.path!).readAsBytes();
+          } catch (_) {}
+        }
+        if (bytes == null) {
+          skipped++;
+          continue;
+        }
+        final ext = (f.extension ?? '').toLowerCase();
+        final isAllowed = allowedExtensions.contains(ext);
+        final hasData = bytes.isNotEmpty;
+        if (isAllowed && hasData) {
+          // Validate real image content by attempting to decode
+          final decoded = img.decodeImage(bytes);
+          if (decoded != null) {
+            validBytes.add(bytes);
+            final contentType = ext == 'jpg' || ext == 'jpeg'
+                ? 'image/jpeg'
+                : ext == 'png'
+                    ? 'image/png'
+                    : 'image/webp';
+            validTypes.add(contentType);
+          } else {
+            skipped++;
+          }
+        } else {
+          skipped++;
+        }
+      }
+      if (validBytes.isEmpty && skipped > 0) {
+        if (mounted) _errorHandler.showSnackBar(context, 'بعض الصور غير مدعومة (مثل HEIC) أو تالفة');
+        return;
+      }
+      if (mounted) {
+        setState(() {
+          final remaining = 10 - _localImages.length;
+          final toAdd = validBytes.take(remaining).toList();
+          final toAddTypes = validTypes.take(remaining).toList();
+          _localImages.addAll(toAdd);
+          _localContentTypes.addAll(toAddTypes);
+        });
+        if (skipped > 0) {
+          _errorHandler.showSnackBar(context, 'تم تجاهل $skipped ملف/ملفات غير مدعومة');
+        }
+      }
     } catch (e, s) {
       _errorHandler.recordError(e, s);
       if (mounted) _errorHandler.showSnackBar(context, 'تعذر اختيار الصور');
@@ -66,11 +120,36 @@ class _OfferPicturesState extends State<OfferPictures> {
     setState(() => _uploading = true);
     _uploadedUrls.clear();
     try {
-      for (final bytes in _localImages) {
-        final uploaded = await _storage.uploadOfferImage(userId: currentUser.userId, imageBytes: bytes);
-        _uploadedUrls.add(uploaded.originalUrl);
+      // Force refresh auth token to avoid precondition issues due to stale tokens
+      try {
+        await FirebaseAuth.instance.currentUser?.getIdToken(true);
+      } catch (e, s) {
+        _errorHandler.recordError(e, s);
+      }
+      int failed = 0;
+      for (int i = 0; i < _localImages.length; i++) {
+        final bytes = _localImages[i];
+        final contentType = i < _localContentTypes.length ? _localContentTypes[i] : 'image/jpeg';
+        try {
+          final uploaded = await _storage.uploadOfferImage(
+            userId: currentUser.userId,
+            imageBytes: bytes,
+            contentType: contentType,
+          );
+          _uploadedUrls.add(uploaded.originalUrl);
+        } catch (e, s) {
+          failed++;
+          _errorHandler.recordError(e, s);
+        }
       }
       if (!mounted) return;
+      if (_uploadedUrls.isEmpty) {
+        _errorHandler.showSnackBar(context, 'فشل رفع جميع الصور، حاول صوراً أخرى');
+        return;
+      }
+      if (failed > 0) {
+        _errorHandler.showSnackBar(context, 'تم رفع بعض الصور فقط، فشل $failed صورة');
+      }
       Navigator.of(context).push(
         CupertinoPageRoute(
           builder: (context) => ViewOffer(pictureUrls: _uploadedUrls),

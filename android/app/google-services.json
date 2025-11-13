@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "76087421545",
+    "firebase_url": "https://hafar-market-default-rtdb.europe-west1.firebasedatabase.app",
     "project_id": "hafar-market",
     "storage_bucket": "hafar-market.firebasestorage.app"
   },
@@ -10,6 +11,25 @@
         "mobilesdk_app_id": "1:76087421545:android:e834539b23e21e33b590f8",
         "android_client_info": {
           "package_name": "com.newuniverse.hafarmarket"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZOyUcD_98c95pW4e9X7KnNthW-Xf2JFI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:76087421545:android:33332ce6b6e958b0b590f8",
+        "android_client_info": {
+          "package_name": "com.newuniverse.market"
         }
       },
       "oauth_client": [],

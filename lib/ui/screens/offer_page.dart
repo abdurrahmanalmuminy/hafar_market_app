@@ -18,9 +18,6 @@ import 'package:hafar_market_app/ui/widget/widgets.dart';
 import 'package:hafar_market_app/utils/format_timestamp.dart';
 import 'package:provider/provider.dart';
 import 'package:uicons/uicons.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:hafar_market_app/services/dynamic_links_service.dart';
-import 'package:hafar_market_app/main.dart';
 // import 'package:hafar_market_app/l10n/app_localizations.dart';
 
 class OfferPage extends StatefulWidget {
@@ -64,12 +61,12 @@ class _OfferPageState extends State<OfferPage> {
       appBar: AppBar(
         actions: [
           IconButton(onPressed: () async {
-                            if (widget.offer.id.isNotEmpty) {
-                              _offerController.incrementOfferShares(widget.offer.id);
-                              final uri = await DynamicLinksService(navigatorKey: rootNavigatorKey)
-                                  .buildOfferLink(widget.offer.id);
-                              Share.share(uri.toString());
-                            }
+                            // if (widget.offer.id.isNotEmpty) {
+                            //   _offerController.incrementOfferShares(widget.offer.id);
+                            //   final uri = await DynamicLinksService(navigatorKey: rootNavigatorKey)
+                            //       .buildOfferLink(widget.offer.id);
+                            //   Share.share(uri.toString());
+                            // }
                           },
                           icon: Icon(UIcons.regularRounded.redo),
                         ),

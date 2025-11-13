@@ -2,7 +2,7 @@
 
 ## Android (Google Play)
 - App bundle (AAB) built (release)
-- Unique applicationId set: `com.newuniverse.hafarmarket`
+- Unique applicationId set: `com.newuniverse.market`
 - Release signing configured (android/key.properties)
 - ProGuard/R8 enabled; Crashlytics/Performance working in release
 - Screenshots (7-inch, 10-inch tablets, phone)
@@ -14,7 +14,7 @@
 
 ## iOS (App Store)
 - Archive build succeeds (release, no codesign in CI)
-- Bundle identifier: `com.newuniverse.hafarmarket`
+- Bundle identifier: `com.newuniverse.market`
 - Push notifications entitlement set to production
 - App icon, launch screens
 - Screenshots for all required sizes

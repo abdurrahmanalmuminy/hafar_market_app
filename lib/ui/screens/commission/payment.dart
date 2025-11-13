@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:hafar_market_app/ui/themes/dimentions.dart';
-import 'package:hafar_market_app/ui/widget/payment/custom_credit_card.dart';
 import 'package:moyasar/moyasar.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -29,6 +28,7 @@ class _PaymentState extends State<Payment> {
       creditCard: CreditCardConfig(saveCard: false, manual: false),
       applePay: ApplePayConfig(
         merchantId: dotenv.env['MOYASAR_APPLE_MERCHANT_ID'] ?? '',
+        saveCard: false,
         label: "سيارتك كوم",
         manual: false,
       ),
@@ -110,7 +110,7 @@ class _PaymentState extends State<Payment> {
                   ],
                 )
                 : const SizedBox(),
-            CustomCreditCard(
+            CreditCard(
               config: paymentConfig,
               onPaymentResult: onPaymentResult,
               locale: Localization.ar(),
