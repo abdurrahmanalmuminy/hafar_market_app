@@ -139,7 +139,7 @@ class _OfferPageState extends State<OfferPage> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     gap(height: 16),
-                    Row(
+                    widget.offer.price != null ? Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -155,7 +155,7 @@ class _OfferPageState extends State<OfferPage> {
                           color: AppColors.primaryColor,
                         ),
                       ],
-                    ),
+                    ) : SizedBox(),
                     gap(height: 10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.start,

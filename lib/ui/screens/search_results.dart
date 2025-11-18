@@ -19,16 +19,33 @@ class SearchResults extends StatefulWidget {
 class _SearchResultsState extends State<SearchResults> {
   OfferController controller = OfferController();
 
-  late final SearchClient client = SearchClient(
-    appId: dotenv.env['ALGOLIA_APP_ID'] ?? '',
-    apiKey: dotenv.env['ALGOLIA_API_KEY'] ?? '',
-  );
+  SearchClient? _client;
+  bool _algoliaConfigured = false;
 
   final _controller = TextEditingController();
   Timer? _debounce;
 
   List<Hit> hits = [];
   bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeAlgolia();
+  }
+
+  void _initializeAlgolia() {
+    final appId = dotenv.env['ALGOLIA_APP_ID'] ?? '';
+    final apiKey = dotenv.env['ALGOLIA_API_KEY'] ?? '';
+
+    if (appId.isNotEmpty && apiKey.isNotEmpty) {
+      _client = SearchClient(appId: appId, apiKey: apiKey);
+      _algoliaConfigured = true;
+    } else {
+      debugPrint('Algolia not configured: Missing ALGOLIA_APP_ID or ALGOLIA_API_KEY in .env');
+      _algoliaConfigured = false;
+    }
+  }
 
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
@@ -44,6 +61,20 @@ class _SearchResultsState extends State<SearchResults> {
   }
 
   Future<void> _performSearch(String query) async {
+    if (!_algoliaConfigured || _client == null) {
+      setState(() {
+        loading = false;
+        hits = [];
+      });
+      debugPrint("Search failed: Algolia not configured");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('البحث غير متاح حالياً. يرجى التحقق من إعدادات Algolia.'),
+        ),
+      );
+      return;
+    }
+
     setState(() => loading = true);
 
     final hitQuery = SearchForHits(
@@ -53,7 +84,7 @@ class _SearchResultsState extends State<SearchResults> {
     );
 
     try {
-      final response = await client.searchForHits(requests: [hitQuery]);
+      final response = await _client!.searchForHits(requests: [hitQuery]);
 
       final [hitResp] = response.toList();
 
@@ -64,18 +95,68 @@ class _SearchResultsState extends State<SearchResults> {
     } catch (e) {
       setState(() => loading = false);
       debugPrint("Search failed: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('فشل البحث: ${e.toString()}'),
+          ),
+        );
+      }
     }
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
-    client.dispose();
+    _controller.dispose();
+    _client?.dispose();
     super.dispose();
   }
 
   Widget _buildResults() {
-    if (hits.isEmpty) return SizedBox();
+    if (!_algoliaConfigured) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.search_off, size: 64, color: Colors.grey),
+              gap(height: 16),
+              Text(
+                'البحث غير متاح حالياً',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              gap(height: 8),
+              Text(
+                'يرجى التحقق من إعدادات Algolia في ملف .env',
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (hits.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            _controller.text.isEmpty
+                ? 'ابدأ بالبحث عن العروض'
+                : 'لا توجد نتائج',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+        ),
+      );
+    }
+
     return ListView(
       children: [
         ListTile(
@@ -95,8 +176,10 @@ class _SearchResultsState extends State<SearchResults> {
               Hit hit = hits[index];
               return SearchResult(
                 content: hit['content'] ?? "",
-                market: hit["market"],
-                picture: hit["pictures"][0],
+                market: hit["market"] ?? "",
+                picture: (hit["pictures"] as List?)?.isNotEmpty == true
+                    ? hit["pictures"][0]
+                    : null,
                 price: hit["price"],
               );
             },
