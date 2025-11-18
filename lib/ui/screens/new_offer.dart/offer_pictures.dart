@@ -1,11 +1,9 @@
-import 'dart:typed_data';
 import 'dart:io';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dots_indicator/dots_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:image/image.dart' as img;
 import 'package:hafar_market_app/controllers/error_handler.dart';
 import 'package:hafar_market_app/models/user/user.dart';
 import 'package:hafar_market_app/providers/user_provider.dart';
@@ -29,8 +27,7 @@ class _OfferPicturesState extends State<OfferPictures> {
   final ErrorHandler _errorHandler = ErrorHandler();
   final StorageService _storage = StorageService();
 
-  final List<Uint8List> _localImages = [];
-  final List<String> _localContentTypes = [];
+  final List<PlatformFile> _localImages = [];
   final List<String> _uploadedUrls = [];
   bool _uploading = false;
   int _currentImageIndex = 0;
@@ -41,58 +38,34 @@ class _OfferPicturesState extends State<OfferPictures> {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
         allowMultiple: true,
-        withData: true,
       );
       if (result == null) return;
       final files = result.files.toList();
       final allowedExtensions = {'jpg', 'jpeg', 'png', 'webp'};
       int skipped = 0;
-      final validBytes = <Uint8List>[];
-      final validTypes = <String>[];
+      final validFiles = <PlatformFile>[];
       for (final f in files) {
-        Uint8List? bytes = f.bytes;
-        // Fallback to reading from path if bytes not provided by picker
-        if (bytes == null && f.path != null) {
-          try {
-            bytes = await File(f.path!).readAsBytes();
-          } catch (_) {}
-        }
-        if (bytes == null) {
+        if (f.path == null) {
           skipped++;
           continue;
         }
         final ext = (f.extension ?? '').toLowerCase();
         final isAllowed = allowedExtensions.contains(ext);
-        final hasData = bytes.isNotEmpty;
-        if (isAllowed && hasData) {
-          // Validate real image content by attempting to decode
-          final decoded = img.decodeImage(bytes);
-          if (decoded != null) {
-            validBytes.add(bytes);
-            final contentType = ext == 'jpg' || ext == 'jpeg'
-                ? 'image/jpeg'
-                : ext == 'png'
-                    ? 'image/png'
-                    : 'image/webp';
-            validTypes.add(contentType);
-          } else {
-            skipped++;
-          }
+        if (isAllowed) {
+          validFiles.add(f);
         } else {
           skipped++;
         }
       }
-      if (validBytes.isEmpty && skipped > 0) {
+      if (validFiles.isEmpty && skipped > 0) {
         if (mounted) _errorHandler.showSnackBar(context, 'بعض الصور غير مدعومة (مثل HEIC) أو تالفة');
         return;
       }
       if (mounted) {
         setState(() {
           final remaining = 10 - _localImages.length;
-          final toAdd = validBytes.take(remaining).toList();
-          final toAddTypes = validTypes.take(remaining).toList();
+          final toAdd = validFiles.take(remaining).toList();
           _localImages.addAll(toAdd);
-          _localContentTypes.addAll(toAddTypes);
         });
         if (skipped > 0) {
           _errorHandler.showSnackBar(context, 'تم تجاهل $skipped ملف/ملفات غير مدعومة');
@@ -127,16 +100,13 @@ class _OfferPicturesState extends State<OfferPictures> {
         _errorHandler.recordError(e, s);
       }
       int failed = 0;
-      for (int i = 0; i < _localImages.length; i++) {
-        final bytes = _localImages[i];
-        final contentType = i < _localContentTypes.length ? _localContentTypes[i] : 'image/jpeg';
+      for (final pickedImage in _localImages) {
         try {
-          final uploaded = await _storage.uploadOfferImage(
+          final url = await _storage.uploadOfferImage(
             userId: currentUser.userId,
-            imageBytes: bytes,
-            contentType: contentType,
+            pickedImage: pickedImage,
           );
-          _uploadedUrls.add(uploaded.originalUrl);
+          _uploadedUrls.add(url);
         } catch (e, s) {
           failed++;
           _errorHandler.recordError(e, s);
@@ -191,20 +161,24 @@ class _OfferPicturesState extends State<OfferPictures> {
                         }
                       },
                     ),
-                    items: _localImages.map((imageBytes) {
+                    items: _localImages.map((pickedImage) {
                       return ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
-        width: double.maxFinite,
-        decoration: BoxDecoration(
-          border: Border.all(
-            width: 1,
-            color:
-                Theme.of(
-                  context,
-                ).inputDecorationTheme.enabledBorder!.borderSide.color,
-          ),
-        ),child: Image.memory(imageBytes, fit: BoxFit.cover)),
+                          width: double.maxFinite,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              width: 1,
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).inputDecorationTheme.enabledBorder!.borderSide.color,
+                            ),
+                          ),
+                          child: pickedImage.path != null 
+                              ? Image.file(File(pickedImage.path!), fit: BoxFit.cover)
+                              : const SizedBox(),
+                        ),
                       );
                     }).toList(),
                   ),
